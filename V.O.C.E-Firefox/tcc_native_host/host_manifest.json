@@ -1,0 +1,9 @@
+{
+  "name": "com.meutcc.monitor",
+  "description": "Host nativo para o TCC de monitoramento",
+  "path": "C:\\Users\\49418787873\\Desktop\\V.O.C.E-Firefox\\tcc_native_host\\run_host.bat",
+  "type": "stdio",
+  "allowed_origins": [
+    "moz-extension://332c0020-4be3-4632-8ab8-eeddcd7ffcb1"
+  ]
+}
