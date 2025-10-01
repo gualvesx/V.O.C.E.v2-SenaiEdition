@@ -170,15 +170,29 @@ app.post('/api/students', requireLogin, async (req, res) => {
     const { fullName, cpf, pc_id } = req.body;
     if (!fullName) return res.status(400).json({ error: 'Nome do aluno é obrigatório' });
     try {
-        const [result] = await dbPool.query(
-            "INSERT INTO students (full_name, cpf, pc_id) VALUES (?, ?, ?)",
-            [fullName, cpf || null, pc_id || null]
-        );
+        const [result] = await dbPool.query("INSERT INTO students (full_name, cpf, pc_id) VALUES (?, ?, ?)", [fullName, cpf || null, pc_id || null]);
         res.json({ success: true, message: 'Aluno criado com sucesso!', student: { id: result.insertId, full_name: fullName, cpf, pc_id } });
     } catch (error) {
         console.error('Erro ao criar aluno:', error);
         res.status(500).json({ error: 'Erro ao criar aluno' });
     }
+});
+
+app.put('/api/students/:studentId', requireLogin, async (req, res) => {
+	const { studentId } = req.params;
+	const { fullName, cpf, pc_id } = req.body;
+	if (!fullName) return res.status(400).json({ error: 'O nome do aluno é obrigatório.' });
+	try {
+		const [result] = await dbPool.query(
+			"UPDATE students SET full_name = ?, cpf = ?, pc_id = ? WHERE id = ?",
+			[fullName, cpf || null, pc_id || null, studentId]
+		);
+		if (result.affectedRows === 0) return res.status(404).json({ error: 'Aluno não encontrado.' });
+		res.json({ success: true, message: 'Dados do aluno atualizados!' });
+	} catch (error) {
+		console.error('Erro ao atualizar aluno:', error);
+		res.status(500).json({ error: 'Erro ao atualizar o aluno.' });
+	}
 });
 
 app.get('/api/students/all', requireLogin, async (req, res) => {
@@ -225,18 +239,15 @@ app.delete('/api/classes/:classId/remove-student/:studentId', requireLogin, asyn
     }
 });
 
-// --- APIs DE DADOS (LOGS, ALERTAS, ETC.) ---
+// --- APIs DE DADOS (LOGS, ETC.) ---
 const buildDataQuery = (baseSelect, req) => {
     const { classId } = req.query;
     const params = [];
-    
     let sql = `${baseSelect} LEFT JOIN students s ON l.aluno_id = s.cpf OR l.aluno_id = s.pc_id`;
-
     if (classId && classId !== 'null') {
         sql += ` WHERE s.id IN (SELECT student_id FROM class_students WHERE class_id = ?)`;
         params.push(classId);
     }
-    
     return { sql, params };
 }
 

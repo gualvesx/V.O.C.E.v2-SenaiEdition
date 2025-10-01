@@ -2,12 +2,12 @@
 // 						LÓGICA DO DASHBOARD V.O.C.E (Versão Final Corrigida)
 // ================================================================
 
-// --- ESTADO GLOBAL ---
 let state = {
     activeClassId: null,
     activeClassName: '',
     allStudents: [],
     studentsInClass: [],
+    editingStudentData: null,
     currentChartType: 'bar',
     mainChartInstance: null
 };
@@ -22,7 +22,24 @@ function openEditClassModal(classId, currentName) {
 }
 
 function closeModals() {
-	const modal = document.getElementById('editClassModal');
+    const classModal = document.getElementById('editClassModal');
+    const studentModal = document.getElementById('editStudentModal');
+    if(classModal) classModal.classList.add('hidden');
+    if(studentModal) studentModal.classList.add('hidden');
+}
+
+function openEditStudentModal(student) {
+    state.editingStudentData = student;
+    const modal = document.getElementById('editStudentModal');
+    if(!modal) return;
+    document.getElementById('editStudentNameInput').value = student.full_name;
+    document.getElementById('editStudentCpfInput').value = student.cpf || '';
+    document.getElementById('editStudentPcIdInput').value = student.pc_id || '';
+    modal.classList.remove('hidden');
+}
+
+function closeStudentModal() {
+    const modal = document.getElementById('editStudentModal');
     if(modal) modal.classList.add('hidden');
 }
 
@@ -41,12 +58,13 @@ function renderAllStudents() {
         const studentDiv = document.createElement('div');
         const isAlreadyInClass = state.activeClassId && state.activeClassId !== 'null' && studentsInClassIds.includes(student.id);
         
-        studentDiv.className = `flex justify-between items-center p-2 rounded ${isAlreadyInClass ? 'bg-green-100 text-gray-400' : 'bg-gray-50 cursor-grab'}`;
-        studentDiv.setAttribute('draggable', !isAlreadyInClass);
-        studentDiv.dataset.studentId = student.id;
-
+        studentDiv.className = `flex justify-between items-center p-2 rounded ${isAlreadyInClass ? 'bg-green-100 text-gray-400' : 'bg-gray-50'}`;
+        
         studentDiv.innerHTML = `
-            <span>${student.full_name}</span>
+            <div class="flex items-center">
+                <span class="${!isAlreadyInClass ? 'cursor-grab' : ''}" draggable="${!isAlreadyInClass}" data-student-id="${student.id}">${student.full_name}</span>
+                <button data-student-json='${JSON.stringify(student)}' class="btn-edit-student ml-2 text-gray-400 hover:text-blue-600 text-xs">✏️</button>
+            </div>
             <button 
                 data-student-id="${student.id}" 
                 class="btn-add-student text-green-500 hover:text-green-700 text-xl font-bold ${state.activeClassId && state.activeClassId !== 'null' && !isAlreadyInClass ? '' : 'hidden'}"
@@ -88,6 +106,10 @@ function updateLogsTable(logs) {
     const fragment = document.createDocumentFragment();
     logs.forEach(log => {
         const row = document.createElement('tr');
+        const isAlert = log.categoria === 'Rede Social' || log.categoria === 'Jogos';
+        if (isAlert) {
+            row.className = 'bg-red-50 text-red-800 font-medium';
+        }
         row.innerHTML = `
             <td class="px-6 py-4 whitespace-nowrap text-sm">${log.student_name || log.aluno_id}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm"><a href="http://${log.url}" target="_blank" class="text-blue-600 hover:underline">${log.url}</a></td>
@@ -129,17 +151,14 @@ function updateChart(logs) {
 	const chartCanvas = document.getElementById('mainChart');
 	if (!chartCanvas) return;
 	if (state.mainChartInstance) state.mainChartInstance.destroy();
-	
 	const siteUsage = logs.reduce((acc, log) => {
 		acc[log.url] = (acc[log.url] || 0) + log.duration;
 		return acc;
 	}, {});
-	
 	const topSites = Object.entries(siteUsage).sort(([, a], [, b]) => b - a).slice(0, 10);
 	const chartLabels = topSites.map(site => site[0]);
 	const chartData = topSites.map(site => site[1]);
 	const backgroundColors = ['rgba(220, 38, 38, 0.7)', 'rgba(153, 27, 27, 0.7)', 'rgba(239, 68, 68, 0.7)', 'rgba(248, 113, 113, 0.7)', 'rgba(252, 165, 165, 0.7)'];
-	
 	state.mainChartInstance = new Chart(chartCanvas.getContext('2d'), {
 		type: state.currentChartType,
 		data: {
@@ -173,6 +192,53 @@ async function createClass() {
     } catch (error) {
         alert('Erro: ' + error.message);
     }
+}
+
+async function deleteClass(classId) {
+    if (!confirm('ATENÇÃO: Isso removerá a turma permanentemente. Deseja continuar?')) return;
+    try {
+        const result = await apiCall(`/api/classes/${classId}`, 'DELETE');
+        alert(result.message);
+        window.location.reload();
+    } catch (error) {
+        alert('Erro: ' + error.message);
+    }
+}
+
+async function saveClassChanges() {
+    const classId = document.getElementById('editClassModal').dataset.classId;
+    const newName = document.getElementById('editClassNameInput').value.trim();
+    if (!newName) return alert('O nome não pode ser vazio.');
+    try {
+        const result = await apiCall(`/api/classes/${classId}`, 'PUT', { name: newName });
+        alert(result.message);
+        closeModals();
+        window.location.reload();
+    } catch (error) {
+        alert('Erro: ' + error.message);
+    }
+}
+
+async function saveStudentChanges() {
+	if (!state.editingStudentData) return;
+	const studentId = state.editingStudentData.id;
+	const updatedData = {
+		fullName: document.getElementById('editStudentNameInput').value.trim(),
+		cpf: document.getElementById('editStudentCpfInput').value.trim(),
+		pc_id: document.getElementById('editStudentPcIdInput').value.trim()
+	};
+	if (!updatedData.fullName) return alert('O nome do aluno é obrigatório.');
+	try {
+		await apiCall(`/api/students/${studentId}`, 'PUT', updatedData);
+		alert('Dados do aluno atualizados!');
+		closeStudentModal();
+        await fetchAllStudents();
+        renderAllStudents();
+        await fetchStudentsInClass(state.activeClassId); // Re-renderiza a lista da turma caso o aluno esteja nela
+        renderStudentsInClass();
+	} catch (error) {
+		alert('Erro: ' + error.message);
+	}
 }
 
 async function fetchAllStudents() {
@@ -245,8 +311,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderAllStudents();
     await handleClassSelection(null, ''); 
 
-    // [CORRIGIDO] Adicionado o listener para criar turma
+    // --- Listeners de Ação ---
     document.getElementById('createClassBtn')?.addEventListener('click', createClass);
+    document.getElementById('editClassBtn')?.addEventListener('click', () => {
+        if(state.activeClassId && state.activeClassId !== 'null') openEditClassModal(state.activeClassId, state.activeClassName);
+    });
+    document.getElementById('deleteClassBtn')?.addEventListener('click', () => {
+        if(state.activeClassId && state.activeClassId !== 'null') deleteClass(state.activeClassId);
+    });
+    document.getElementById('saveClassChangesBtn')?.addEventListener('click', saveClassChanges);
+    document.getElementById('saveStudentChangesBtn')?.addEventListener('click', saveStudentChanges);
     
     const classSelect = document.getElementById('classSelect');
     classSelect.addEventListener('change', (e) => {
@@ -255,8 +329,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     const allStudentsList = document.getElementById('all-students-list');
-    const classStudentsList = document.getElementById('students-in-class-list');
-
     allStudentsList.addEventListener('click', async (e) => {
         if (e.target.classList.contains('btn-add-student')) {
             const studentId = e.target.dataset.studentId;
@@ -269,15 +341,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 alert(error.message);
             }
         }
-    });
-
-    allStudentsList.addEventListener('dragstart', e => {
-        const target = e.target.closest('[data-student-id]');
-        if (target) {
-            e.dataTransfer.setData('text/plain', target.dataset.studentId);
+        if (e.target.classList.contains('btn-edit-student')) {
+            const studentData = JSON.parse(e.target.dataset.studentJson);
+            openEditStudentModal(studentData);
         }
     });
 
+    const classStudentsList = document.getElementById('students-in-class-list');
     classStudentsList.addEventListener('dragover', e => e.preventDefault());
     classStudentsList.addEventListener('drop', async e => {
         e.preventDefault();
