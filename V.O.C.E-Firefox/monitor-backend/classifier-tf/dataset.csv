@@ -1,3 +1,4 @@
+dominio,categoria
 facebook.com,Rede Social
 instagram.com,Rede Social
 twitter.com,Rede Social
@@ -352,19 +353,19 @@ cvc.com.br,Compras
 buscape.com.br,Compras
 zoom.com.br,Compras
 reclameaqui.com.br,Outros
-youtube.com,Outros
-vimeo.com,Outros
-dailymotion.com,Outros
-twitch.tv,Outros
-netflix.com,Outros
-primevideo.com,Outros
-disneyplus.com,Outros
-hulu.com,Outros
-hbomax.com,Outros
-spotify.com,Outros
-deezer.com,Outros
-music.apple.com,Outros
-music.youtube.com,Outros
+youtube.com,Streaming
+vimeo.com,Streaming
+dailymotion.com,Streaming
+twitch.tv,Streaming
+netflix.com,Streaming
+primevideo.com,Streaming
+disneyplus.com,Streaming
+hulu.com,Streaming
+hbomax.com,Streaming
+spotify.com,Streaming
+deezer.com,Streaming
+music.apple.com,Streaming
+music.youtube.com,Streaming
 amazon.com,Compras
 imdb.com,Outros
 rottentomatoes.com,Outros
@@ -541,4 +542,18 @@ tensorflow.org,IA
 pytorch.org,IA
 keras.io,IA
 deepmind.google,IA
-
+crunchyroll.com,Animes e Manga
+funimation.com,Animes e Manga
+myanimelist.net,Animes e Manga
+anime-planet.com,Animes e Manga
+vrv.co,Animes e Manga
+hidive.com,Animes e Manga
+animefreak.tv,Animes e Manga
+gogoanime.pe,Animes e Manga
+9anime.to,Animes e Manga
+kissanime.ru,Animes e Manga
+anilist.co,Animes e Manga
+mangadex.org,Animes e Manga
+manganelo.com,Animes e Manga
+readm.org,Animes e Manga
+viz.com,Animes e Manga
